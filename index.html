@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <meta name="description" content="Visualizza localmente siti statici complessi caricando la cartella principale, senza upload verso un server.">
-  <title>Site Folder Preview</title>
+  <title>Site Folder Preview v2</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
         <span class="brand-mark" aria-hidden="true">SP</span>
         <span>
           <strong>Site Folder Preview</strong>
-          <small>Browser locale per siti statici</small>
+          <small>Browser locale per build web</small>
         </span>
       </a>
       <div class="privacy-pill" title="I file restano nel browser">Solo locale</div>
@@ -25,7 +25,7 @@
       <div class="intro">
         <p class="eyebrow">GitHub Pages ready</p>
         <h1 id="title">Apri una cartella.<br>Visualizza il sito.</h1>
-        <p class="lede">Seleziona la cartella principale del progetto. Il viewer cerca automaticamente cartelle come <code>public</code>, <code>dist</code>, <code>build</code> o un <code>index.html</code> valido e ricrea la navigazione nel browser.</p>
+        <p class="lede">Seleziona la cartella principale del progetto. Il viewer analizza il progetto, distingue gli entrypoint sorgente dalle build già compilate e seleziona automaticamente il target più adatto, come <code>dist</code>, <code>build</code>, <code>out</code> o <code>public</code>.</p>
       </div>
 
       <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Seleziona o trascina una cartella">
@@ -39,7 +39,7 @@
       </div>
 
       <div class="capabilities" aria-label="Funzioni supportate">
-        <span>HTML multipagina</span><span>CSS / JS</span><span>Immagini e font</span><span>Link assoluti</span><span>SPA fallback</span><span>public / dist / build</span>
+        <span>HTML multipagina</span><span>CSS / JS</span><span>Immagini e font</span><span>Link assoluti</span><span>SPA / hydration</span><span>Rilevamento build</span><span>public / dist / build / out</span>
       </div>
     </section>
 
@@ -50,6 +50,10 @@
           <span id="projectMeta">—</span>
         </div>
         <div class="toolbar-actions">
+          <label id="targetWrap" class="target-wrap" hidden>
+            <span>Target</span>
+            <select id="targetSelect" aria-label="Directory da visualizzare"></select>
+          </label>
           <button id="backButton" class="icon-button" type="button" title="Indietro" aria-label="Indietro">
             <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
