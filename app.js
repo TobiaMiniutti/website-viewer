@@ -18,19 +18,70 @@ const els = {
 let current = null;
 let swReady = null;
 
-function openDB() {
+function hasRequiredSchema(db) {
+  return db.objectStoreNames.contains(FILE_STORE) && db.objectStoreNames.contains(META_STORE);
+}
+
+function createRequiredSchema(db, transaction) {
+  let fileStore;
+  if (!db.objectStoreNames.contains(FILE_STORE)) {
+    fileStore = db.createObjectStore(FILE_STORE, { keyPath: 'key' });
+  } else if (transaction) {
+    fileStore = transaction.objectStore(FILE_STORE);
+  }
+
+  if (fileStore && !fileStore.indexNames.contains('session')) {
+    fileStore.createIndex('session', 'session', { unique: false });
+  }
+
+  if (!db.objectStoreNames.contains(META_STORE)) {
+    db.createObjectStore(META_STORE, { keyPath: 'session' });
+  }
+}
+
+function deleteBrokenDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error || new Error('Impossibile ripristinare IndexedDB.'));
+    request.onblocked = () => reject(new Error('IndexedDB è bloccato da una vecchia scheda. Chiudi le altre schede del viewer e riprova.'));
+  });
+}
+
+function openDB(allowRepair = true) {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
+
     request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(FILE_STORE)) {
-        const store = db.createObjectStore(FILE_STORE, { keyPath: 'key' });
-        store.createIndex('session', 'session', { unique: false });
-      }
-      if (!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE, { keyPath: 'session' });
+      createRequiredSchema(request.result, request.transaction);
     };
-    request.onsuccess = () => resolve(request.result);
+
+    request.onsuccess = async () => {
+      const db = request.result;
+      if (hasRequiredSchema(db)) {
+        resolve(db);
+        return;
+      }
+
+      db.close();
+      if (!allowRepair) {
+        reject(new Error('Schema IndexedDB non valido.'));
+        return;
+      }
+
+      try {
+        // A previous service worker could have created the database before the
+        // object stores existed. Because the schema version is the same, an
+        // upgrade event would never run again: recreate this ephemeral cache.
+        await deleteBrokenDatabase();
+        resolve(await openDB(false));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
     request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('IndexedDB è bloccato da una vecchia scheda. Chiudi le altre schede del viewer e riprova.'));
   });
 }
 

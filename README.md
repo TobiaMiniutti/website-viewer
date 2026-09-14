@@ -1,4 +1,8 @@
-# Site Folder Preview v2
+# Site Folder Preview v2.1
+
+## v2.1 — IndexedDB self-repair
+
+La v2.1 corregge una race condition tra pagina e Service Worker: in alcune installazioni il Service Worker poteva creare il database IndexedDB prima degli object store `files` e `meta`. Il viewer ora verifica lo schema a ogni apertura e, se trova un database incompleto, ricrea automaticamente la cache locale senza richiedere la pulizia manuale dei dati del sito.
 
 Viewer statico da pubblicare su GitHub Pages per aprire localmente la cartella principale di un sito e visualizzare la build senza caricare i file su un backend.
 
