@@ -3,83 +3,155 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <meta name="description" content="Visualizza localmente siti statici complessi caricando la cartella principale, senza upload verso un server.">
-  <title>Site Folder Preview v2.1</title>
+  <meta name="description" content="Viewer locale per siti statici, cartelle di build e frammenti HTML. I file restano nel browser.">
+  <meta name="theme-color" content="#f2f1ee">
+  <title>Site Preview — miniutti.it</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="./" aria-label="Site Folder Preview">
-        <span class="brand-mark" aria-hidden="true">SP</span>
-        <span>
-          <strong>Site Folder Preview</strong>
-          <small>Browser locale per build web</small>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Site Preview — home">
+        <span class="brand-mark" aria-hidden="true">V</span>
+        <span class="brand-copy">
+          <strong>Site Preview</strong>
+          <small>viewer.miniutti.it</small>
         </span>
       </a>
-      <div class="privacy-pill" title="I file restano nel browser">Solo locale</div>
+      <p class="local-note"><span aria-hidden="true"></span> Elaborazione locale</p>
     </header>
 
-    <section id="emptyState" class="empty-state" aria-labelledby="title">
-      <div class="intro">
-        <p class="eyebrow">GitHub Pages ready</p>
-        <h1 id="title">Apri una cartella.<br>Visualizza il sito.</h1>
-        <p class="lede">Seleziona la cartella principale del progetto. Il viewer analizza il progetto, distingue gli entrypoint sorgente dalle build già compilate e seleziona automaticamente il target più adatto, come <code>dist</code>, <code>build</code>, <code>out</code> o <code>public</code>.</p>
+    <section id="emptyState" class="empty-state" aria-labelledby="pageTitle">
+      <div class="intro-block">
+        <p class="kicker">Static site viewer</p>
+        <h1 id="pageTitle">Apri. Controlla. Chiudi.</h1>
+        <p class="intro-copy">Visualizza build statiche, file HTML o un semplice corpo HTML direttamente nel browser. Nessun upload verso un backend.</p>
       </div>
 
-      <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Seleziona o trascina una cartella">
-        <div class="drop-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M3.75 6.75h5l1.5 2h10v8.5a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2v-10.5Z"/><path d="M8 14h8M12 10v8"/></svg>
+      <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Trascina una cartella o un file HTML">
+        <div class="drop-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 7.75A2.75 2.75 0 0 1 6.75 5h3.1l1.7 2H17.25A2.75 2.75 0 0 1 20 9.75v6.5A2.75 2.75 0 0 1 17.25 19H6.75A2.75 2.75 0 0 1 4 16.25Z"/><path d="M12 10v5m-2.25-2.25L12 15l2.25-2.25"/></svg>
         </div>
-        <strong>Trascina qui la cartella del progetto</strong>
-        <span>oppure</span>
-        <button id="pickFolder" class="primary-button" type="button">Scegli cartella</button>
+        <div class="drop-copy">
+          <strong>Trascina qui il progetto</strong>
+          <span>Cartella completa o file HTML singolo</span>
+        </div>
+        <div class="entry-actions" aria-label="Modalità di apertura">
+          <button id="pickFolder" class="button button-primary" type="button">Apri cartella</button>
+          <button id="pickHtmlFile" class="button button-secondary" type="button">File HTML</button>
+          <button id="openPasteDialog" class="button button-secondary" type="button">Incolla HTML</button>
+        </div>
         <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
+        <input id="htmlFileInput" type="file" accept=".html,.htm,text/html" hidden>
       </div>
 
-      <div class="capabilities" aria-label="Funzioni supportate">
-        <span>HTML multipagina</span><span>CSS / JS</span><span>Immagini e font</span><span>Link assoluti</span><span>SPA / hydration</span><span>Rilevamento build</span><span>public / dist / build / out</span>
+      <div class="support-line" aria-label="Funzioni supportate">
+        <span>Build detection</span>
+        <span>SPA fallback</span>
+        <span>Root-relative paths</span>
+        <span>HTML + CSS + JS</span>
       </div>
+
+      <p class="trust-note">Il codice della preview viene eseguito nel browser. Apri solo progetti di cui ti fidi.</p>
     </section>
 
     <section id="workspace" class="workspace" hidden>
-      <div class="toolbar">
-        <div class="project-info">
-          <strong id="projectName">Progetto</strong>
-          <span id="projectMeta">—</span>
+      <header class="viewer-toolbar">
+        <div class="project-block">
+          <button id="newPreviewButton" class="icon-button icon-button-home" type="button" title="Nuova preview" aria-label="Nuova preview">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M11 6l-6 6 6 6"/></svg>
+          </button>
+          <div class="project-copy">
+            <strong id="projectName">Preview</strong>
+            <span id="projectMeta">—</span>
+          </div>
         </div>
-        <div class="toolbar-actions">
-          <label id="targetWrap" class="target-wrap" hidden>
-            <span>Target</span>
-            <select id="targetSelect" aria-label="Directory da visualizzare"></select>
-          </label>
-          <button id="backButton" class="icon-button" type="button" title="Indietro" aria-label="Indietro">
-            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <button id="forwardButton" class="icon-button" type="button" title="Avanti" aria-label="Avanti">
-            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-          <button id="reloadButton" class="icon-button" type="button" title="Ricarica anteprima" aria-label="Ricarica anteprima">
-            <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>
-          </button>
+
+        <div class="viewer-controls">
+          <div class="history-controls" aria-label="Navigazione anteprima">
+            <button id="backButton" class="icon-button" type="button" title="Indietro" aria-label="Indietro">
+              <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button id="forwardButton" class="icon-button" type="button" title="Avanti" aria-label="Avanti">
+              <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <button id="reloadButton" class="icon-button" type="button" title="Ricarica" aria-label="Ricarica anteprima">
+              <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
+
           <div class="address-wrap">
             <span class="status-dot" id="statusDot" aria-hidden="true"></span>
             <input id="addressBar" class="address-bar" value="/" aria-label="Percorso anteprima" spellcheck="false">
           </div>
+
+          <label id="targetWrap" class="target-wrap" hidden>
+            <span>Target</span>
+            <select id="targetSelect" aria-label="Directory da visualizzare"></select>
+          </label>
+
+          <div class="viewport-picker" role="group" aria-label="Larghezza anteprima">
+            <button class="viewport-button is-active" type="button" data-viewport="fit" aria-pressed="true">Fit</button>
+            <button class="viewport-button" type="button" data-viewport="1440" aria-pressed="false">Desktop</button>
+            <button class="viewport-button" type="button" data-viewport="768" aria-pressed="false">Tablet</button>
+            <button class="viewport-button" type="button" data-viewport="390" aria-pressed="false">Mobile</button>
+          </div>
+
           <button id="openTabButton" class="icon-button" type="button" title="Apri in una nuova scheda" aria-label="Apri in una nuova scheda">
             <svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
           </button>
-          <button id="newFolderButton" class="secondary-button" type="button">Cambia cartella</button>
         </div>
-      </div>
+      </header>
 
       <div id="notice" class="notice" hidden></div>
-      <div class="preview-frame-wrap">
+      <div id="previewStage" class="preview-stage" data-viewport="fit">
         <iframe id="previewFrame" title="Anteprima sito" referrerpolicy="no-referrer"></iframe>
       </div>
     </section>
   </main>
+
+  <dialog id="pasteDialog" class="paste-dialog" aria-labelledby="pasteTitle">
+    <form id="pasteForm" method="dialog" class="paste-panel">
+      <header class="paste-header">
+        <div>
+          <p class="kicker">Quick preview</p>
+          <h2 id="pasteTitle">Incolla HTML</h2>
+        </div>
+        <button id="closePasteDialog" class="icon-button" type="button" aria-label="Chiudi">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <div class="mode-switch" role="tablist" aria-label="Tipo di codice HTML">
+        <button class="mode-button is-active" type="button" data-mode="body" role="tab" aria-selected="true">Solo body</button>
+        <button class="mode-button" type="button" data-mode="document" role="tab" aria-selected="false">Documento completo</button>
+      </div>
+
+      <label class="field-label" for="htmlInput">
+        <span id="htmlInputLabel">Contenuto del body</span>
+        <textarea id="htmlInput" rows="13" spellcheck="false" placeholder="<main>…</main>"></textarea>
+      </label>
+
+      <details class="code-extras">
+        <summary>CSS e JavaScript opzionali</summary>
+        <div class="extras-grid">
+          <label class="field-label" for="cssInput">
+            <span>CSS</span>
+            <textarea id="cssInput" rows="7" spellcheck="false" placeholder="body { … }"></textarea>
+          </label>
+          <label class="field-label" for="jsInput">
+            <span>JavaScript</span>
+            <textarea id="jsInput" rows="7" spellcheck="false" placeholder="console.log('preview')"></textarea>
+          </label>
+        </div>
+      </details>
+
+      <footer class="paste-footer">
+        <span>Gli script vengono eseguiti nella preview.</span>
+        <button id="previewPastedHtml" class="button button-primary" type="submit">Apri preview</button>
+      </footer>
+    </form>
+  </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script src="./app.js" type="module"></script>
