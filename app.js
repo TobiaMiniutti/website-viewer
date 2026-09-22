@@ -7,21 +7,16 @@ const VIRTUAL_SEGMENT = '__siteview__';
 const $ = (selector) => document.querySelector(selector);
 const els = {
   emptyState: $('#emptyState'), workspace: $('#workspace'), dropZone: $('#dropZone'),
-  pickFolder: $('#pickFolder'), folderInput: $('#folderInput'), pickHtmlFile: $('#pickHtmlFile'),
-  htmlFileInput: $('#htmlFileInput'), openPasteDialog: $('#openPasteDialog'), pasteDialog: $('#pasteDialog'),
-  pasteForm: $('#pasteForm'), closePasteDialog: $('#closePasteDialog'), htmlInput: $('#htmlInput'),
-  htmlInputLabel: $('#htmlInputLabel'), cssInput: $('#cssInput'), jsInput: $('#jsInput'),
-  projectName: $('#projectName'), projectMeta: $('#projectMeta'), previewFrame: $('#previewFrame'),
-  previewStage: $('#previewStage'), addressBar: $('#addressBar'), statusDot: $('#statusDot'),
-  notice: $('#notice'), reloadButton: $('#reloadButton'), backButton: $('#backButton'),
-  forwardButton: $('#forwardButton'), openTabButton: $('#openTabButton'),
-  newPreviewButton: $('#newPreviewButton'), toast: $('#toast'), targetSelect: $('#targetSelect'),
+  pickFolder: $('#pickFolder'), folderInput: $('#folderInput'), projectName: $('#projectName'),
+  projectMeta: $('#projectMeta'), previewFrame: $('#previewFrame'), addressBar: $('#addressBar'),
+  statusDot: $('#statusDot'), notice: $('#notice'), reloadButton: $('#reloadButton'),
+  backButton: $('#backButton'), forwardButton: $('#forwardButton'), openTabButton: $('#openTabButton'),
+  newFolderButton: $('#newFolderButton'), toast: $('#toast'), targetSelect: $('#targetSelect'),
   targetWrap: $('#targetWrap')
 };
 
 let current = null;
 let swReady = null;
-let pasteMode = 'body';
 
 function hasRequiredSchema(db) {
   return db.objectStoreNames.contains(FILE_STORE) && db.objectStoreNames.contains(META_STORE);
@@ -371,104 +366,6 @@ function previewPathFromURL(url) {
   } catch { return '/'; }
 }
 
-function escapeInlineScript(value) {
-  return String(value || '').replace(/<\/script/gi, '<\\/script');
-}
-
-function injectPreviewExtras(html, css, js) {
-  let result = String(html || '');
-  const styleTag = css.trim() ? `<style>\n${css}\n</style>` : '';
-  const scriptTag = js.trim() ? `<script>\n${escapeInlineScript(js)}\n<\/script>` : '';
-
-  if (styleTag) {
-    if (/<\/head\s*>/i.test(result)) result = result.replace(/<\/head\s*>/i, `${styleTag}\n</head>`);
-    else if (/<head\b[^>]*>/i.test(result)) result = result.replace(/<head\b[^>]*>/i, (match) => `${match}\n${styleTag}`);
-    else if (/<html\b[^>]*>/i.test(result)) result = result.replace(/<html\b[^>]*>/i, (match) => `${match}\n<head>\n${styleTag}\n</head>`);
-    else if (/<!doctype[^>]*>/i.test(result)) result = result.replace(/<!doctype[^>]*>/i, (match) => `${match}\n${styleTag}`);
-    else result = `${styleTag}\n${result}`;
-  }
-
-  if (scriptTag) {
-    if (/<\/body\s*>/i.test(result)) result = result.replace(/<\/body\s*>/i, `${scriptTag}\n</body>`);
-    else result = `${result}\n${scriptTag}`;
-  }
-  return result;
-}
-
-function buildQuickDocument(html, css = '', js = '', mode = 'body') {
-  const source = String(html || '').trim();
-  if (mode === 'document') {
-    const base = /<html\b|<!doctype/i.test(source)
-      ? source
-      : `<!doctype html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n${source}\n</body>\n</html>`;
-    return injectPreviewExtras(base, css, js);
-  }
-
-  return `<!doctype html>
-<html lang="it">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HTML Preview</title>
-${css.trim() ? `<style>\n${css}\n</style>` : ''}
-</head>
-<body>
-${source}
-${js.trim() ? `<script>\n${escapeInlineScript(js)}\n<\/script>` : ''}
-</body>
-</html>`;
-}
-
-async function loadHtmlText(html, projectName = 'HTML Preview') {
-  const file = new File([html], 'index.html', { type: 'text/html' });
-  await loadProject([{ file, path: 'index.html' }], projectName);
-}
-
-function setPasteMode(mode) {
-  pasteMode = mode === 'document' ? 'document' : 'body';
-  document.querySelectorAll('.mode-button').forEach((button) => {
-    const active = button.dataset.mode === pasteMode;
-    button.classList.toggle('is-active', active);
-    button.setAttribute('aria-selected', String(active));
-  });
-  els.htmlInputLabel.textContent = pasteMode === 'body' ? 'Contenuto del body' : 'Documento HTML completo';
-  els.htmlInput.placeholder = pasteMode === 'body' ? '<main>…</main>' : '<!doctype html>\n<html>…</html>';
-}
-
-function openPasteDialog() {
-  setPasteMode(pasteMode);
-  if (typeof els.pasteDialog.showModal === 'function') els.pasteDialog.showModal();
-  else els.pasteDialog.setAttribute('open', '');
-  requestAnimationFrame(() => els.htmlInput.focus());
-}
-
-function closePasteDialog() {
-  if (typeof els.pasteDialog.close === 'function') els.pasteDialog.close();
-  else els.pasteDialog.removeAttribute('open');
-}
-
-function setViewport(viewport) {
-  const value = ['fit', '1440', '768', '390'].includes(String(viewport)) ? String(viewport) : 'fit';
-  els.previewStage.dataset.viewport = value;
-  document.querySelectorAll('.viewport-button').forEach((button) => {
-    const active = button.dataset.viewport === value;
-    button.classList.toggle('is-active', active);
-    button.setAttribute('aria-pressed', String(active));
-  });
-}
-
-function resetToHome() {
-  current = null;
-  document.body.classList.remove('is-viewing');
-  els.previewFrame.src = 'about:blank';
-  els.workspace.hidden = true;
-  els.emptyState.hidden = false;
-  els.statusDot.classList.remove('ready');
-  els.addressBar.value = '/';
-  showNotice('');
-  setViewport('fit');
-}
-
 function showToast(message) {
   els.toast.textContent = message;
   els.toast.hidden = false;
@@ -490,8 +387,7 @@ function candidateLabel(candidate, index) {
 function updateProjectUI() {
   if (!current) return;
   els.projectName.textContent = current.projectName;
-  const fileLabel = current.mountedFileCount === 1 ? 'file servito' : 'file serviti';
-  els.projectMeta.textContent = `${current.mountedFileCount} ${fileLabel} · root ${rootLabel(current.mountRoot)}`;
+  els.projectMeta.textContent = `${current.mountedFileCount} file serviti · root ${rootLabel(current.mountRoot)}`;
 
   if (current.candidates.length > 1) {
     els.targetWrap.hidden = false;
@@ -540,7 +436,6 @@ async function loadProject(entries, projectName) {
   await clearDatabase();
   current = await storeProject(entries, projectName || 'Progetto locale');
 
-  document.body.classList.add('is-viewing');
   els.emptyState.hidden = true;
   els.workspace.hidden = false;
   els.statusDot.classList.add('ready');
@@ -605,31 +500,15 @@ function navigateAddress() {
   els.previewFrame.src = virtualURL(raw || '/');
 }
 
-els.pickFolder.addEventListener('click', (event) => {
-  event.stopPropagation();
-  els.folderInput.click();
-});
-els.pickHtmlFile.addEventListener('click', (event) => {
-  event.stopPropagation();
-  els.htmlFileInput.click();
-});
-els.openPasteDialog.addEventListener('click', (event) => {
-  event.stopPropagation();
-  openPasteDialog();
-});
-els.closePasteDialog.addEventListener('click', closePasteDialog);
-els.newPreviewButton.addEventListener('click', resetToHome);
-
-els.dropZone.addEventListener('click', (event) => {
-  if (!event.target.closest('button')) els.folderInput.click();
-});
+els.pickFolder.addEventListener('click', (event) => { event.stopPropagation(); els.folderInput.click(); });
+els.newFolderButton.addEventListener('click', () => els.folderInput.click());
+els.dropZone.addEventListener('click', (event) => { if (!event.target.closest('button')) els.folderInput.click(); });
 els.dropZone.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
     els.folderInput.click();
   }
 });
-
 els.folderInput.addEventListener('change', async () => {
   try {
     const { entries, projectName } = entriesFromInput(els.folderInput.files);
@@ -639,52 +518,6 @@ els.folderInput.addEventListener('change', async () => {
   } finally {
     els.folderInput.value = '';
   }
-});
-
-els.htmlFileInput.addEventListener('change', async () => {
-  const file = els.htmlFileInput.files?.[0];
-  try {
-    if (!file) return;
-    if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') throw new Error('Seleziona un file HTML valido.');
-    await loadProject([{ file, path: 'index.html' }], file.name);
-  } catch (error) {
-    showToast(error.message || String(error));
-  } finally {
-    els.htmlFileInput.value = '';
-  }
-});
-
-document.querySelectorAll('.mode-button').forEach((button) => {
-  button.addEventListener('click', () => setPasteMode(button.dataset.mode));
-});
-
-document.querySelectorAll('.viewport-button').forEach((button) => {
-  button.addEventListener('click', () => setViewport(button.dataset.viewport));
-});
-
-els.pasteForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const html = els.htmlInput.value;
-  if (!html.trim()) {
-    showToast('Inserisci del codice HTML da visualizzare.');
-    els.htmlInput.focus();
-    return;
-  }
-
-  try {
-    const documentHtml = buildQuickDocument(html, els.cssInput.value, els.jsInput.value, pasteMode);
-    await loadHtmlText(documentHtml, pasteMode === 'body' ? 'HTML body' : 'Documento HTML');
-    closePasteDialog();
-  } catch (error) {
-    showToast(error.message || String(error));
-  }
-});
-
-els.pasteDialog.addEventListener('click', (event) => {
-  if (event.target !== els.pasteDialog) return;
-  const rect = els.pasteDialog.getBoundingClientRect();
-  const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
-  if (!inside) closePasteDialog();
 });
 
 for (const eventName of ['dragenter', 'dragover']) {
@@ -702,10 +535,6 @@ for (const eventName of ['dragleave', 'drop']) {
 els.dropZone.addEventListener('drop', async (event) => {
   try {
     const { entries, projectName } = await entriesFromDrop(event.dataTransfer);
-    if (entries.length === 1 && /\.html?$/i.test(entries[0].file.name || entries[0].path)) {
-      await loadProject([{ file: entries[0].file, path: 'index.html' }], entries[0].file.name || projectName);
-      return;
-    }
     await loadProject(entries, projectName);
   } catch (error) {
     showToast(error.message || String(error));

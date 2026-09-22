@@ -1,44 +1,45 @@
-# Site Preview v3.0
+# Site Folder Preview v2.1
 
-Viewer statico pensato per `viewer.miniutti.it`. Permette di aprire e controllare siti statici direttamente nel browser, senza inviare i file a un backend.
+## v2.1 — IndexedDB self-repair
 
-## Modalità di apertura
+La v2.1 corregge una race condition tra pagina e Service Worker: in alcune installazioni il Service Worker poteva creare il database IndexedDB prima degli object store `files` e `meta`. Il viewer ora verifica lo schema a ogni apertura e, se trova un database incompleto, ricrea automaticamente la cache locale senza richiedere la pulizia manuale dei dati del sito.
 
-- **Cartella progetto** — analizza tutti gli `index.html`, distingue gli entrypoint sorgente dalle build e preferisce automaticamente output come `dist/`, `build/`, `out/`, `.output/public/` e `storybook-static/`.
-- **File HTML singolo** — apre rapidamente un documento `.html`/`.htm`. Gli asset locali esterni al file non sono disponibili: per quelli usa la cartella progetto.
-- **HTML incollato** — accetta sia il solo contenuto del `<body>` sia un documento HTML completo. CSS e JavaScript possono essere aggiunti separatamente.
+Viewer statico da pubblicare su GitHub Pages per aprire localmente la cartella principale di un sito e visualizzare la build senza caricare i file su un backend.
 
-## Viewer
+## Cosa cambia in v2
 
-- navigazione avanti/indietro e reload;
-- barra percorso virtuale;
-- cambio manuale del target quando esistono più build plausibili;
-- preset di viewport Fit, Desktop (1440 px), Tablet (768 px) e Mobile (390 px);
-- apertura della preview in una nuova scheda;
-- SPA fallback e route statiche (`/privacy/` → `privacy/index.html`);
-- riscrittura di URL root-relative, `fetch`, XHR, history API e asset verso il filesystem virtuale.
+- Analizza tutti gli `index.html` invece di scegliere sempre quello più vicino alla root.
+- Distingue un entrypoint di sviluppo Vite/React/TypeScript da una build pronta.
+- Preferisce automaticamente output come `dist/`, `build/`, `out/`, `.output/public/` e `storybook-static/`.
+- Permette di cambiare manualmente il **Target** quando esistono più root plausibili.
+- Salva l'intero progetto in IndexedDB, quindi il target può essere cambiato senza selezionare di nuovo la cartella.
+- Maschera il prefisso interno della preview nelle build hydrate/SPA che leggono `window.location`.
+- Reindirizza link, `history.pushState`, `fetch`, XHR e URL root-relative verso il filesystem virtuale.
+- Supporta route statiche come `/privacy/` -> `privacy/index.html`, URL senza estensione e fallback SPA.
 
-## Privacy e sicurezza
+## Esempio verificato
 
-I file importati vengono conservati localmente in IndexedDB e serviti alla preview da un Service Worker. Non è previsto alcun upload verso un backend.
+Nel progetto `miniutti.it-v6-living-garden` sono presenti sia:
 
-Il JavaScript contenuto nei progetti e nel codice incollato viene eseguito nel browser: aprire solo contenuti di cui ci si fida.
+- `/index.html`: template sorgente Vite che carica `/src/entry-client.tsx`;
+- `/dist/index.html`: build compilata con JS/CSS bundle e HTML prerenderizzato.
 
-## Deploy GitHub Pages
+La v1 sceglieva il primo e produceva una pagina bianca. La v2 assegna una forte penalità agli entrypoint sorgente e seleziona `dist/`.
 
-Pubblicare nella root del repository:
+## Deploy su GitHub Pages
+
+Pubblica questi file nella root del repository:
 
 - `index.html`
 - `app.js`
 - `sw.js`
 - `styles.css`
 - `.nojekyll`
-- `CNAME`
 
-`CNAME` contiene `viewer.miniutti.it`. Il dominio deve essere configurato lato DNS/GitHub Pages separatamente.
-
-HTTPS è necessario perché la preview usa Service Worker; GitHub Pages è compatibile.
+Funziona sia su dominio Pages root sia su project pages (`username.github.io/repository/`). È richiesto HTTPS o localhost perché usa Service Worker.
 
 ## Limiti
 
-È un viewer, non un runtime Node o un backend. Non esegue `npm install`, Vite dev server, SSR Node, PHP, database o API locali. Se un progetto richiede una build, la cartella di output deve essere già presente.
+È un **viewer**, non un ambiente Node completo. Non esegue `npm install`, Vite dev server, SSR Node, PHP, database o backend. Quando la cartella contiene una build statica già generata, cerca di usarla automaticamente. Le chiamate a vere API/backend possono naturalmente restituire errore in preview.
+
+Caricare solo progetti di cui ci si fida: il JavaScript del progetto viene eseguito nel browser durante l'anteprima.
